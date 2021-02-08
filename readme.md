@@ -1,0 +1,1 @@
+The code is not well formatted and mostly deals with transfermarkt.de, but there might be a few functions in here that could be adopted for fc_rstats tyrone_mings package https://github.com/FCrSTATS/tyrone_mings.
