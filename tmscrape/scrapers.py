@@ -5,10 +5,11 @@ import os
 import pandas as pd
 import numpy as np
 import re
+import time
 from datetime import datetime
 
 
-HEADERS={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
+HEADERS = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
 DELAY = 2
 
 
@@ -119,12 +120,12 @@ def clean_market_vals(series):
     series = (series
                 .str.replace('ablösefrei', '0')
                 .str.replace('-', '0'))
-    mvdf = (series.str.split(' ', expand = True))
+    mvdf = (series.str.split(' ', expand=True))
     mvdf[0] = mvdf[0].str.replace('-', '0')
     if mvdf.shape[1] > 1:
         mvdf[1] = (mvdf[1].str.replace('Tsd.', '1000')
-                         .str.replace('Mio.', '1000000')
-                         .str.replace('Mrd.', '1000000000').astype('float'))
+                          .str.replace('Mio.', '1000000')
+                          .str.replace('Mrd.', '1000000000').astype('float'))
         series = (mvdf[0].str.replace(',', '.').astype('float') * mvdf[1].fillna(0)).astype('int')
     return series
 
@@ -132,27 +133,27 @@ def clean_market_vals(series):
 def get_competition_list(competition_string):
     """
     get all competitions listed on transfermarkt
-    
+
     str competition_string: one of ['europa', 'asien', 'afrika', 'amerika', 'europaJugend']
-    
+
     Returns:
     --------
     DataFrame with columns:
         ['League_Name', 'n_clubs', 'n_players', 'avg_age', 'pct_legionary',
          'Market_Value', 'League_Type', 'competition_string', 'Country']
-         
+
         League_Type: ie 1st Division, Cup ...
-    
+
     """
     assert competition_string in ['europa', 'asien', 'afrika', 'amerika', 'europaJugend'], "competition_string must be in ['europa', 'asien', 'afrika', 'amerika', 'europaJugend']"
-    
+
     base_url = 'https://www.transfermarkt.de'
     url = f'https://www.transfermarkt.de/wettbewerbe/{competition_string}'
 
     pageTree, soup = get_page_tree_and_soup(url)
 
     avail_pages = soup.find_all('div', {'class': 'pager'})
-    
+
     try:
         affix, last_page = avail_pages[0].find_all('li')[-1].find('a')['href'].split('=')
         affix += '='
@@ -165,18 +166,17 @@ def get_competition_list(competition_string):
         tbody = soup.find_all('tbody')[0]
 
         table = get_table_from_tbody(tbody, strip=True)
-        
 
         mask = pd.isna(table.iloc[:, 1:]).all(axis=1)
-        
+
         ligen = pd.Series(index=table.index)
-        ligen.loc[mask&(table[0]!=table[0].shift(1))] = table.loc[mask&(table[0]!=table[0].shift(1)), 0]
-        
+        ligen.loc[mask & (table[0] != table[0].shift(1))] = table.loc[mask & (table[0] != table[0].shift(1)), 0]
+
         ligen = ligen.fillna(method='ffill')
         table['League_Type'] = ligen
-        
+
         table = table.iloc[:, 1:]
-        
+
         table = table.loc[~mask]
 
         comp_links = [a['href'].split('/')[-1] for a in tbody.find_all('a')
@@ -210,9 +210,9 @@ def get_competition_list(competition_string):
 
     competitions['avg_age'] = competitions['avg_age'].str.replace(',', '.').astype('float')
     competitions['pct_legionary'] = pd.to_numeric(competitions['pct_legionary']
-                                        .str.replace(',', '.')
-                                        .str.replace(' %', '')
-                                        .str.replace('%', ''), errors='coerce')
+                                                    .str.replace(',', '.')
+                                                    .str.replace(' %', '')
+                                                    .str.replace('%', ''), errors='coerce')
 
     def clean_market_val(series):
         base, mmm, _ = series.str.split(' ', expand=True).values.T
@@ -230,35 +230,35 @@ def get_competition_list(competition_string):
         return pd.Series(base * mmm, index=series.index)
 
     competitions['Market_Value'] = clean_market_val(competitions['Market_Value'])
-    
+
     return competitions
 
 
 def get_clubnames_league(league_abbrev,
                          league_name=None,
                          season_id=None,
-                         headers={'User-Agent': 
+                         headers={'User-Agent':
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
-                 ):
+                        ):
     """
-    
+
     get the tm specific club names and club ids for one league
     Parameters:
     -----------
-    
+
     league_abbrev:    ie: for the premier league: GB1
     league_name: tm league name ie.: premier-league
     season_id: season, ie.: 2018 for 2018/19
-    
+
     Returns:
     -----------
     an N x 2 array of club names and club ids 
     [['manchester-city', '281'],
      ...
     ]
-        
+
     """
-    
+
     if (league_name is None) and (season_id is None):
         pageTree = requests.get(f'https://www.transfermarkt.de/jumplist/startseite/wettbewerb/{league_abbrev}',
                                 headers=headers)
@@ -269,7 +269,7 @@ def get_clubnames_league(league_abbrev,
         else:    
             pageTree = requests.get(f'https://www.transfermarkt.de/{league_name}/startseite/wettbewerb/{league_abbrev}/plus/?saison_id={season_id}',
                                     headers=headers)
-                                    
+
     soup = BeautifulSoup(pageTree.content, 'html.parser')
 
     links = soup.find_all('a',  {"class": "vereinprofil_tooltip"})
@@ -290,12 +290,12 @@ def get_club_colors(club,
                    ):
     '''
     scrapes the club colors from the "Daten&Fakten - Vereinsportrait" Transfermarkt page
-    
+
     Parameters:
     -----------
     club_id: the transfermarkt club specific id, ie 16
     club: the transfermarkt club name, ie. borussia-dortmund
-    
+
     Returns:
     -----------
     farben: a list of club colors
@@ -322,7 +322,7 @@ def get_club_emblem(club_id):
     Parameters:
     -----------
     club_id: the transfermarkt club specific id
-    
+
     Returns:
     -----------
     img: an image array
@@ -338,7 +338,7 @@ def scrape_team_league_placements(club_name,
                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}):
     '''
     scrape the 'Historische Platzierungen' page from tm to attain league, placement, coach, points etc.
-    
+
     Parameters:
     -----------
     club_id: the transfermarkt club specific id, ie 16
@@ -350,7 +350,7 @@ def scrape_team_league_placements(club_name,
     -----------
     df: a DataFrame of historic league placement data
     '''
-    
+
     url = f'https://www.transfermarkt.de/{club_name}/platzierungen/verein/{club_id}'
     print('scraping ', url)
     pageTree = requests.get(url, headers=headers)
@@ -388,7 +388,7 @@ def scrape_gameweek_placements(club_name,
     '''
     scrape the 'Historische Platzierungen' page from tm to attain league, placement, coach, points etc
     - for each gameweek.
-    
+
     Parameters:
     -----------
     club_id: the transfermarkt club specific id, ie 16
@@ -404,12 +404,12 @@ def scrape_gameweek_placements(club_name,
     df: a DataFrame of historic league placement data
     '''
     link = 'https://www.transfermarkt.de/{}/platzierungen/verein/{}/spieltag/{}'
-    
+
     columns = ['Saison', 'Liga', 'Ligahöhe',
                     'W', 'D', 'L', 'GF', 'GA', 'GD', 'Punkte',
                     'Platz', 'Trainer', 'img_link']
 
-    all_data = pd.DataFrame(columns = columns)
+    all_data = pd.DataFrame(columns=columns)
 
     for spieltag in np.arange(1, max_spieltage+1):
         # scrape the page
@@ -426,10 +426,10 @@ def scrape_gameweek_placements(club_name,
             row_text = []
             tds = tr.find_all('td')
 
-            for i, td in enumerate(tds):    
+            for i, td in enumerate(tds):
                 if i == 1:
                     pass
-                    #row_text.append(td.find_next('img')['title'])
+                    # row_text.append(td.find_next('img')['title'])
                 elif i == 7:
                     gf, ga = str.split(td.text, ':')
                     row_text.append(gf)
@@ -443,7 +443,7 @@ def scrape_gameweek_placements(club_name,
             row_text.append(img_link)
             rows.append(row_text)
 
-        data = pd.DataFrame(np.array(rows), columns = columns)
+        data = pd.DataFrame(np.array(rows), columns=columns)
 
         data['club'] = club_name.replace('-', ' ').title()
         data['club_href'] = club_href
@@ -456,16 +456,16 @@ def scrape_gameweek_placements(club_name,
 
     all_data[['W','D','L','GF','GA','GD','Punkte','Platz', 'Spieltag']] = \
                     all_data[['W','D','L','GF','GA','GD','Punkte','Platz', 'Spieltag']].astype('int')
-    
+
     all_data['Jahr'] = all_data['Saison'].apply(lambda x: '19'+x.split('/')[0] if int(x.split('/')[0]) >= 20 else '20'+x.split('/')[0])
     all_data['Jahr'] = all_data['Jahr'].astype('int')
     all_data = all_data.rename(columns = {'club-href': 'club_href', 'Club' : 'club'})
-    
+
     if save:
         if os.path.isdir('gameweek_placements') == False:
             os.makedirs('gameweek_placements')
         df.to_csv(f'gameweek_placements/{club}_gameweek_placements.csv')
-    
+
     return all_data    
 
 
@@ -476,7 +476,7 @@ def get_club_data(club,
                   save=False):
     '''
     scrapes the 'Kaderdaten' and 'Leistungsdaten' from Transfermarkt for one team and one season
-    
+
     Parameters:
     -----------
     club: the transfermarkt club name, ie. borussia-dortmund
@@ -486,22 +486,22 @@ def get_club_data(club,
                           ie: L1 for the Bundesliga, L2 for 2. Bundesliga, GB_ for England, ES_ for Spain etc
             if None, scrapes data for all matches, if not none only for the league
     save = False: whether to save the returned dataframe
-    
+
     Returns:
     -----------
     kader, leistungsdaten: 'Kaderdaten' and 'Leistungsdaten' DataFrames
     '''
 
-    kader = scrape_kaderdaten(club = club,
-                                 club_id = club_id,
-                                 season = season,
-                                 save = True)
+    kader = scrape_kaderdaten(club=club,
+                              club_id=club_id,
+                              season=season,
+                              save=True)
 
-    leistungsdaten = scrape_leistungsdaten(club = club,
-                                 club_id = club_id,
-                                 season = season,
-                                 league_abbrev = league_abbrev,
-                                 save = True)
+    leistungsdaten = scrape_leistungsdaten(club=club,
+                                           club_id=club_id,
+                                           season=season,
+                                           league_abbrev=league_abbrev,
+                                           save=True)
     return kader, leistungsdaten
 
 
