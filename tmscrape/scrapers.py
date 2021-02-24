@@ -7,7 +7,8 @@ import numpy as np
 import re
 from datetime import datetime
 
-HEADERS = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
+
+HEADERS={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
 DELAY = 2
 
 
@@ -26,46 +27,46 @@ POSITION_NAMES = ['Torwart',
                   'Mittelstürmer']
 
 POSITION_NAMES_ENG = ['Goalkeeper',
-                  'Centre-Back',
-                  'Left-Back',
-                  'Right-Back',
-                  'Left Midfield', 
-                  'Right Midfield',
-                  'Defensive Midfield',
-                  'Central Midfield',
-                  'Attacking Midfield',
-                  'Second Striker',
-                  'Left Winger',
-                  'Right Winger',
-                  'Centre-Forward']
+                      'Centre-Back',
+                      'Left-Back',
+                      'Right-Back',
+                      'Left Midfield', 
+                      'Right Midfield',
+                      'Defensive Midfield',
+                      'Central Midfield',
+                      'Attacking Midfield',
+                      'Second Striker',
+                      'Left Winger',
+                      'Right Winger',
+                      'Centre-Forward']
 
 POSITION_ABBREV = ['TW',
-                    'IV',
-                    'LV',
-                    'RV',
-                    'LM',
-                    'RM',
-                    'DM',
-                    'ZM',
-                    'OM',
-                    'HS',
-                    'LA',
-                    'RA',
-                    'ST']
+                   'IV',
+                   'LV',
+                   'RV',
+                   'LM',
+                   'RM',
+                   'DM',
+                   'ZM',
+                   'OM',
+                   'HS',
+                   'LA',
+                   'RA',
+                   'ST']
 
 POSITION_ABBREV_ENG = ['GK',
-                    'CB',
-                    'LB',
-                    'RB',
-                    'LM',
-                    'RM',
-                    'DM',
-                    'CM',
-                    'AM',
-                    'SS',
-                    'LW',
-                    'RW',
-                    'ST']
+                       'CB',
+                       'LB',
+                       'RB',
+                       'LM',
+                       'RM',
+                       'DM',
+                       'CM',
+                       'AM',
+                       'SS',
+                       'LW',
+                       'RW',
+                       'ST']
 
 
 def get_page_tree_and_soup(url, headers=HEADERS):
@@ -236,7 +237,7 @@ def get_competition_list(competition_string):
 def get_clubnames_league(league_abbrev,
                          league_name=None,
                          season_id=None,
-                         headers = {'User-Agent': 
+                         headers={'User-Agent': 
     'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
                  ):
     """
@@ -284,7 +285,7 @@ def get_clubnames_league(league_abbrev,
 
 def get_club_colors(club,
                     club_id,
-                    headers = {'User-Agent': 
+                    headers={'User-Agent': 
            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
                    ):
     '''
@@ -333,7 +334,7 @@ def get_club_emblem(club_id):
 def scrape_team_league_placements(club_name,
                                   club_id,
                                   save = False,
-                                  headers = {'User-Agent': 
+                                  headers={'User-Agent': 
                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}):
     '''
     scrape the 'Historische Platzierungen' page from tm to attain league, placement, coach, points etc.
@@ -491,12 +492,12 @@ def get_club_data(club,
     kader, leistungsdaten: 'Kaderdaten' and 'Leistungsdaten' DataFrames
     '''
 
-    kader = sc.scrape_kaderdaten(club = club,
+    kader = scrape_kaderdaten(club = club,
                                  club_id = club_id,
                                  season = season,
                                  save = True)
 
-    leistungsdaten = sc.scrape_leistungsdaten(club = club,
+    leistungsdaten = scrape_leistungsdaten(club = club,
                                  club_id = club_id,
                                  season = season,
                                  league_abbrev = league_abbrev,
@@ -622,7 +623,7 @@ def scrape_kaderdaten(club,
                       club_id,
                       season,
                       save = False,
-                      headers = {'User-Agent': 
+                      headers={'User-Agent': 
            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
                     ):   
     '''
@@ -931,7 +932,7 @@ def get_spieler_verletzungshistorie(player_id,
 
 def get_league_table(league_abbrev,
                      season,
-                     headers = {'User-Agent': 
+                     headers={'User-Agent': 
                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
                    ):
     '''
@@ -978,6 +979,58 @@ def get_league_table(league_abbrev,
 
     return table
 
+def get_gameweek_table(league_abbrev,
+                       season,
+                       gameweek,
+                       headers={'User-Agent': 
+               'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
+                   ):
+    '''
+    
+    scrapes the table from Transfermarkt for one gameweek of one season for a given league
+    
+    Parameters:
+    -----------
+    league_abbrev: the transfermarkt specific league abbreviation
+                  ie: L1 for the Bundesliga, L2 for 2. Bundesliga, GB_ for England, ES_ for Spain etc
+    season: the year the season begins, ie: 2020
+    gameweek: gameweek to scrape the table for
+    headers: for response.get
+    
+    Returns:
+    -----------
+    table: DataFrame
+    
+    '''
+
+    table_url = f'https://www.transfermarkt.de/league-name/spieltagtabelle/wettbewerb/{league_abbrev}?saison_id={season}&spieltag={gameweek}'
+    pageTree = requests.get(table_url, headers=HEADERS)
+
+    tables = pd.read_html(pageTree.content)
+
+    table = tables[4].drop('Verein', axis=1).rename(columns={'#': 'Rank',
+                                                             'Verein.1': 'Club',
+                                                             'Unnamed: 3': 'Played',
+                                                             'G': 'Wins',
+                                                             'U': 'Draw',
+                                                             'V': 'Losses',
+                                                             'Tore': 'Goals',
+                                                             '+/-': 'GD',
+                                                             'Pkt.': 'Pts'})
+
+    soup = BeautifulSoup(pageTree.content, 'html.parser')
+    tds = soup.find_all('td', {'class': "zentriert no-border-rechts"})
+
+    table['GF'] = table['Goals'].apply(lambda x: x.split(':')[0]).astype('int')
+    table['GA'] = table['Goals'].apply(lambda x: x.split(':')[1]).astype('int')
+
+    club_names = [item for td in tds for i, item in enumerate(td.find_next('a', {'class': "vereinprofil_tooltip"})['href'].split('/')) if i in [1]]
+    club_ids = [item for td in tds for i, item in enumerate(td.find_next('a', {'class': "vereinprofil_tooltip"})['href'].split('/')) if i in [4]]
+
+    table['club_name'] = club_names[:len(table)]
+    table['club_id'] = club_ids[:len(table)]
+
+    return table
 
 def scrape_league_games(url,
                         year=None):
