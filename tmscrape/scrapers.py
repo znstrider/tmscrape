@@ -1512,3 +1512,68 @@ def scrape_gameinfo_by_pos(player_id,
     table['player_id'] = player_id
     
     return table
+
+def get_team_schedule(team_id,
+                       headers = {'User-Agent': 
+               'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'}
+                   ):
+    '''
+    
+    scrapes a teams schedule for the current season from Transfermarkt
+    
+    Parameters:
+    -----------
+    team_id: the transfermarkt team specific `team_id`
+    headers: for response.get
+    
+    Returns:
+    -----------
+    table: DataFrame
+    
+    '''
+
+    url = f'https://www.transfermarkt.de/teamname/spielplandatum/verein/{team_id}'
+    
+    pageTree = requests.get(url, headers=HEADERS)
+    soup = BeautifulSoup(pageTree.content, 'html.parser')
+
+    dfs = pd.read_html(pageTree.content)
+
+    df = dfs[1]
+    df['Gegner'] = df['Gegner'].fillna(method='ffill')
+    df = df.rename(columns={'Gegner': 'Competition'})
+    df = df.rename(columns={'Gegner.1': 'Opponent'})
+
+    # clean out rows where all columns have the same value
+    df = df.loc[~(df == df.shift(1, axis=1, fill_value=df.iloc[:, 0])).all(axis=1)]
+
+    df = df.loc[:, ~df.columns.str.contains('Unnamed')]
+
+    df['Zuschauer'] = df['Zuschauer'].str.replace('x', '0').str.replace('.', '').astype('float')
+
+    df['Day'] = df['Datum'].apply(lambda x: x.split(' ', maxsplit=1)[0])
+    df['Datum'] = df['Datum'].apply(lambda x: x.split(' ', maxsplit=1)[1])
+
+    df['Datum'] = pd.to_datetime(df['Datum'])
+
+    df = df.rename(columns={'Spieltag': 'Gameweek',
+                            'Datum':'Date',
+                            'Uhrzeit': 'Time',
+                            'Ort': 'Ground',
+                            'Rang': 'Rank',
+                            'Spielsystem': 'System',
+                            'Zuschauer': 'Attendance',
+                            'Ergebnis': 'Result'})
+
+
+    df['Gameweek'] = df['Gameweek'].str.replace('Runde', 'Round')
+
+    tds = soup.find_all('td', {'class': "zentriert no-border-rechts tiny_wappen_zelle"})
+
+    club_names = [item for td in tds for i, item in enumerate(td.find_next('a', {'class': "vereinprofil_tooltip"})['href'].split('/')) if i in [1]]
+    club_ids = [item for td in tds for i, item in enumerate(td.find_next('a', {'class': "vereinprofil_tooltip"})['href'].split('/')) if i in [4]]
+
+    df['club_string'] = club_names
+    df['club_id'] = club_ids
+    
+    return df
